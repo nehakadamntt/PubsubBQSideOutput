@@ -1,11 +1,10 @@
-import com.google.gson.Gson;
-import com.google.pubsub.v1.ProjectSubscriptionName;
+
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 
 import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
-import org.apache.beam.sdk.io.TextIO;
+
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 
 import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
@@ -13,16 +12,12 @@ import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 
-import org.apache.beam.sdk.options.ValueProvider;
+
 import org.apache.beam.sdk.schemas.Schema;
 
-import org.apache.beam.sdk.transforms.*;
-import org.apache.beam.sdk.transforms.windowing.*;
-import org.apache.beam.sdk.values.*;
-import com.google.gson.JsonSyntaxException;
 
-import org.joda.time.Duration;
-import org.joda.time.Instant;
+import org.apache.beam.sdk.values.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,10 +31,7 @@ public class Main {
     static final TupleTag<String> unparsedMessages = new TupleTag<String>() {
     };
 
-    /*
-     * class provides the custom execution options passed by the
-     * executor at the command-line.
-     * */
+
     public interface MyOptions extends DataflowPipelineOptions, DirectOptions {
 
         @Description("BigQuery table name")
@@ -52,12 +44,12 @@ public class Main {
 
 
 
-        
+
 
     }
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
 
         PipelineOptionsFactory.register(MyOptions.class);
@@ -72,8 +64,6 @@ public class Main {
 
 
 
-
-
     public static final Schema rawSchema = Schema
             .builder()
             .addInt32Field("id")
@@ -82,7 +72,7 @@ public class Main {
             .build();
 
 
-    public static PipelineResult run(MyOptions options) {
+    public static PipelineResult run(MyOptions options) throws Exception {
         Pipeline pipeline = Pipeline.create(options);
 
         LOG.info("Building pipeline...");
@@ -93,8 +83,7 @@ public class Main {
         PCollection<Account> accountCollection=transformOut.get(PubsubMessageToAccount.parsedMessages);
         PCollection<String> unparsedCollection=transformOut.get(PubsubMessageToAccount.unparsedMessages);
 
-        accountCollection.apply(ToString.elements()).apply("JSONTOROW",JsonToRow.withSchema(rawSchema)).
-                apply("WriteToBigqury", BigQueryIO.<Row>write().to(options.getOutputTableName()).useBeamSchema()
+        accountCollection.apply("WriteToBigquery", BigQueryIO.<Account>write().to(options.getOutputTableName()).useBeamSchema()
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
 
