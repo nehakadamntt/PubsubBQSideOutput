@@ -6,10 +6,10 @@ This is Simple Apache Beam Pipeline written using Java SDK which takes pubsub me
 In this Maven Project  Main.java file contains the entry point function from where program starts.
 
 ## Dependencies
-1.Java SDK 
-2.An IDE (optional)
-3.Maven Package Manager
-4.run ```mvn clean dependency:resolve``` to fetch the apache beam dependency
+1. Java SDK 
+2. An IDE (optional)
+3. Maven Package Manager
+4. run ```mvn clean dependency:resolve``` to fetch the apache beam dependency
 
 ## Running
 Use following command to run the pipeline
