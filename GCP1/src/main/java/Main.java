@@ -78,6 +78,10 @@ public class Main {
 
 
 
+     /*
+     * create schema same like outputtable schema 
+     * It is used while conerting json string to row using JsonToRow transformation
+     * */
 
     public static final Schema rawSchema = Schema
             .builder()
@@ -86,23 +90,30 @@ public class Main {
             .addStringField("surname")
             .build();
     
-        //     public static final TableSchema rawSchema = new TableSchema().setFields(Arrays.asList(
-        //         new TableFieldSchema().setName("id").setType("INTEGER"),
-        //         new TableFieldSchema().setName("name").setType("STRING"),
-        //         new TableFieldSchema().setName("surname").setType("STRING")
-        // ));
+      
 
     public static PipelineResult run(MyOptions options) throws Exception{
+        //creating pipeline
         Pipeline pipeline = Pipeline.create(options);
 
         LOG.info("Building pipeline...");
 
-
+        //reading message as string from pubsub using subscription
         PCollection<String> message=pipeline.apply("GetDataFromPUBSub", PubsubIO.readStrings().fromSubscription(options.getSubscription()));
+        
+        //convert jsonstring pubsub message to Account type object. 
+        //expand Function will return tupletag pcollection
         PCollectionTuple transformOut =PubsubMessageToAccount.expand(message);
+        
+        //getting correct or parsedMessage using above tupletagCollection
         PCollection<Account> accountCollection=transformOut.get(PubsubMessageToAccount.parsedMessages);
+        
+        //getting erraneous message
         PCollection<String> unparsedCollection=transformOut.get(PubsubMessageToAccount.unparsedMessages);
-
+        
+        
+        //for correct data
+        //this transformation convert Account object to jsonString
         accountCollection.apply(ParDo.of(new DoFn<Account,String>() {
             @ProcessElement
             public void processElement( ProcessContext context)
@@ -112,7 +123,11 @@ public class Main {
                  context.output(s);
             }
 
-        })).apply(JsonToRow.withSchema(rawSchema)).apply("WriteToBigquery", BigQueryIO.<Row>write().
+        }))
+            //convert input json string to row using schema
+            .apply(JsonToRow.withSchema(rawSchema))
+            //write to Bigquery table
+            .apply("WriteToBigquery", BigQueryIO.<Row>write(). 
                 to(options.getOutputTableName()).useBeamSchema()
                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
@@ -120,10 +135,11 @@ public class Main {
 
         
        
-
+        //for erraneous data 
+        //store it in DLQ topic
         unparsedCollection.apply("write to dlq",PubsubIO.writeStrings().to("path_to_dlq"));
 
-
+        //run pipeline
         return pipeline.run();
 
     }
