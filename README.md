@@ -1,7 +1,7 @@
 # PubsubBQApacheBeam
 
 
-## ABOUT
+## About
 This is Simple Apache Beam Pipeline written using Java SDK which takes pubsub message in the json format and parse it using Gson and then store it into the Bigquery Table.It also handle the erraneous data and store it in DLQ topic.
 In this Maven Project  Main.java file contains the entry point function from where program starts.
 
